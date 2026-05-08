@@ -8,6 +8,10 @@ __pycache__/
 # Processed/generated data
 data/processed/
 
+# Raw datasets
+data/raw/ratings.csv
+data/raw/*.csv
+
 # Streamlit cache
 .streamlit/
 
@@ -22,5 +26,4 @@ Thumbs.db
 *.pkl
 
 # Environment variables
-.envdata/raw/ratings.csv
-data/raw/*.csv
+.env
