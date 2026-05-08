@@ -1,0 +1,26 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Processed/generated data
+data/processed/
+
+# Streamlit cache
+.streamlit/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
+
+# Model artifacts
+*.pkl
+
+# Environment variables
+.envdata/raw/ratings.csv
+data/raw/*.csv
