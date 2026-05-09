@@ -8,6 +8,10 @@ from src.config import (
 )
 
 
+N_USERS = 1000
+RANDOM_STATE = 42
+
+
 @st.cache_data
 def load_raw_data():
     movies = pd.read_csv(MOVIES_PATH)
@@ -22,13 +26,15 @@ def build_or_load_model_df(force_rebuild=False):
 
     movies, ratings = load_raw_data()
 
-    # Sample ratings so MVP loads fast
-    sample_size = min(250_000, len(ratings))
+    n_users = min(N_USERS, ratings["userId"].nunique())
 
-    ratings_sample = ratings.sample(
-        n=sample_size,
-        random_state=42,
+    sample_users = (
+        ratings["userId"]
+        .drop_duplicates()
+        .sample(n=n_users, random_state=RANDOM_STATE)
     )
+
+    ratings_sample = ratings[ratings["userId"].isin(sample_users)].copy()
 
     df = ratings_sample.merge(
         movies,
@@ -36,31 +42,24 @@ def build_or_load_model_df(force_rebuild=False):
         how="left",
     )
 
-    movie_stats = (
-        df.groupby("movieId")["rating"]
-        .agg(
-            avg_rating="mean",
-            rating_count="count",
-        )
-        .reset_index()
+    genre_dummies = df["genres"].str.get_dummies(sep="|")
+
+    genre_dummies = genre_dummies.drop(
+        columns=["(no genres listed)", "IMAX"],
+        errors="ignore",
     )
 
-    movie_features = movies.merge(
-        movie_stats,
-        on="movieId",
-        how="left",
+    model_df = pd.concat(
+        [
+            df[["userId", "movieId", "rating", "title"]],
+            genre_dummies,
+        ],
+        axis=1,
     )
 
-    movie_features["avg_rating"] = movie_features["avg_rating"].fillna(0)
-    movie_features["rating_count"] = movie_features["rating_count"].fillna(0)
-
-    # Keep only movies with enough ratings for decent recommendations
-    movie_features = movie_features[
-        movie_features["rating_count"] >= 20
-    ].copy()
+    model_df["genre_list"] = df["genres"]
 
     MODEL_DF_PATH.parent.mkdir(parents=True, exist_ok=True)
+    model_df.to_csv(MODEL_DF_PATH, index=False)
 
-    movie_features.to_csv(MODEL_DF_PATH, index=False)
-
-    return movie_features
+    return model_df

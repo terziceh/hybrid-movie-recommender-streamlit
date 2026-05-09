@@ -16,6 +16,12 @@ st.set_page_config(
 )
 
 
+@st.cache_data(show_spinner=False)
+def load_movie_data():
+    movie_df = build_or_load_model_df(force_rebuild=False)
+    return filter_to_popular_movies(movie_df, top_n=10000)
+
+
 def init_session_state():
     defaults = {
         "page": "genres",
@@ -32,28 +38,18 @@ def init_session_state():
             st.session_state[key] = value
 
 
-def render_header():
-    st.markdown(
-        """
-        <div style="text-align:center; padding-top:10px; padding-bottom:20px;">
-            <h1 style="font-size:48px; margin-bottom:8px; font-weight:800; letter-spacing:-1px;">
-                🎬 CineMatch
-            </h1>
-            <div style="font-size:18px; color:#9ca3af; margin-top:0px;">
-                Discover your next favorite movie.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def add_custom_css():
     st.markdown(
         """
         <style>
         .stApp {
-            background: radial-gradient(circle at top, #211636 0%, #0e1117 45%, #090b10 100%);
+            background: radial-gradient(circle at top, #1f1533 0%, #0e1117 45%, #07090d 100%);
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            max-width: 1500px;
         }
 
         div[data-testid="stButton"] button {
@@ -70,6 +66,45 @@ def add_custom_css():
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_header():
+    st.markdown(
+        """
+        <div style="text-align:center; padding-top:5px; padding-bottom:30px;">
+            <h1 style="font-size:52px; margin-bottom:8px; font-weight:900; letter-spacing:-1px;">
+                🎬 CineMatch
+            </h1>
+            <div style="font-size:19px; color:#a7a7b3;">
+                Discover your next favorite movie.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def filter_to_popular_movies(movie_df, top_n=10000):
+    if movie_df is None or movie_df.empty:
+        return pd.DataFrame()
+
+    if "rating_count" in movie_df.columns:
+        return (
+            movie_df
+            .sort_values("rating_count", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
+        )
+
+    if "ratings_count" in movie_df.columns:
+        return (
+            movie_df
+            .sort_values("ratings_count", ascending=False)
+            .head(top_n)
+            .reset_index(drop=True)
+        )
+
+    return movie_df.head(top_n).reset_index(drop=True)
 
 
 def is_empty_movies_to_rate(movies_to_rate):
@@ -103,10 +138,13 @@ def render_genre_page(movie_df):
     if st.button("Continue to Movie Ratings"):
         movie_pool = create_movie_pool(movie_df, selected_genres)
 
+        if movie_pool.empty:
+            st.warning("No movies found for those genres. Try a different combo.")
+            return
+
         st.session_state["movies_to_rate"] = get_random_movies(movie_pool, n=20)
         reset_rating_flow()
         st.session_state["page"] = "ratings"
-
         st.rerun()
 
 
@@ -126,12 +164,17 @@ def render_ratings_page(movie_df):
     st.session_state["user_ratings"] = user_ratings
 
     if len(user_ratings) >= 5 and st.session_state["recommendations"] is None:
-        recommendations = generate_recommendations(
-            movie_df=movie_df,
-            selected_genres=st.session_state["selected_genres"],
-            user_ratings=user_ratings,
-            top_n=5,
-        )
+        with st.spinner("Building your CineMatch recommendations..."):
+            recommendations = generate_recommendations(
+                movie_df=movie_df,
+                selected_genres=st.session_state["selected_genres"],
+                user_ratings=user_ratings,
+                top_n=5,
+            )
+
+        if recommendations.empty:
+            st.warning("No recommendations found. Try choosing different genres.")
+            return
 
         st.session_state["recommendations"] = recommendations
         st.session_state["revealed_cards"] = set()
@@ -140,6 +183,27 @@ def render_ratings_page(movie_df):
 
 
 def render_reveal_page():
+    selected_genres = st.session_state.get("selected_genres", [])
+
+    if selected_genres:
+        genre_text = " • ".join(selected_genres)
+
+        st.markdown(
+            f"""
+            <div style="
+                text-align:center;
+                font-size:18px;
+                color:#d1d5db;
+                margin-top:10px;
+                margin-bottom:35px;
+            ">
+                Based on your selected genres:
+                <strong>{genre_text}</strong>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     if st.session_state["recommendations"] is not None:
         render_pack_reveal(st.session_state["recommendations"])
     else:
@@ -151,7 +215,7 @@ def main():
     add_custom_css()
     render_header()
 
-    movie_df = build_or_load_model_df()
+    movie_df = load_movie_data()
 
     if st.session_state["page"] == "genres":
         render_genre_page(movie_df)
