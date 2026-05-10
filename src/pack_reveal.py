@@ -146,7 +146,7 @@ def render_pack_reveal(recommendations):
             else:
 
                 if st.button(
-                    "🎞️\n\nClick to Reveal",
+                    "Click to Reveal",
                     key=f"reveal_card_{i}_{movie_title}",
                     width="stretch",
                 ):

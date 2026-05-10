@@ -9,11 +9,12 @@ __pycache__/
 data/processed/
 
 # Raw datasets
-data/raw/ratings.csv
-data/raw/*.csv
+data/raw/
+*.csv
 
-# Streamlit cache
+# Streamlit cache + secrets
 .streamlit/
+.streamlit/secrets.toml
 
 # OS files
 .DS_Store
@@ -24,6 +25,7 @@ Thumbs.db
 
 # Model artifacts
 *.pkl
+*.joblib
 
 # Environment variables
 .env
