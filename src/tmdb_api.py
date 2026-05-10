@@ -1,16 +1,25 @@
 import os
 import re
 import time
+
 import requests
 import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
-TMDB_BEARER_TOKEN = os.getenv("TMDB_BEARER_TOKEN")
-
 SEARCH_URL = "https://api.themoviedb.org/3/search/movie"
 IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
+
+
+def get_tmdb_token():
+    try:
+        if "TMDB_BEARER_TOKEN" in st.secrets:
+            return st.secrets["TMDB_BEARER_TOKEN"]
+    except Exception:
+        pass
+
+    return os.getenv("TMDB_BEARER_TOKEN")
 
 
 def clean_movie_title(title):
@@ -55,6 +64,11 @@ def request_tmdb(params, headers, retries=3):
 
             print("TMDB status error:", response.status_code, response.text)
 
+            if response.status_code in [401, 403]:
+                return None
+
+            time.sleep(1)
+
         except requests.exceptions.RequestException as e:
             print(f"TMDB request failed attempt {attempt + 1}: {e}")
             time.sleep(1)
@@ -62,9 +76,11 @@ def request_tmdb(params, headers, retries=3):
     return None
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=86400)
 def get_movie_poster(title):
-    if not TMDB_BEARER_TOKEN:
+    tmdb_token = get_tmdb_token()
+
+    if not tmdb_token:
         print("ERROR: TMDB_BEARER_TOKEN is missing")
         return None
 
@@ -73,7 +89,7 @@ def get_movie_poster(title):
 
     headers = {
         "accept": "application/json",
-        "Authorization": f"Bearer {TMDB_BEARER_TOKEN}",
+        "Authorization": f"Bearer {tmdb_token}",
     }
 
     search_attempts = []
