@@ -4,17 +4,16 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_DIR))
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 from models.xgb_model import train_xgb_model
 from models.svd_model import SVDRecommender
+from src.config import MODEL_DF_PATH
 
-
-DATA_PATH = ROOT_DIR / "data" / "processed" / "model_df.csv"
 RANDOM_STATE = 42
 
 
@@ -31,7 +30,7 @@ def print_scores(name, y_true, y_pred):
 
 
 def main():
-    model_df = pd.read_csv(DATA_PATH)
+    model_df = pd.read_csv(MODEL_DF_PATH)
 
     train_df, test_df = train_test_split(
         model_df,

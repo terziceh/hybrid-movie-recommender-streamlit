@@ -18,7 +18,7 @@ st.set_page_config(
 
 @st.cache_data(show_spinner=False)
 def load_movie_data():
-    movie_df = build_or_load_model_df(force_rebuild=False)
+    movie_df = build_or_load_model_df()
     return filter_to_popular_movies(movie_df, top_n=10000)
 
 

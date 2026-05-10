@@ -82,6 +82,7 @@ def render_pack_reveal(recommendations):
     for i, movie in display_recs.iterrows():
 
         movie_title = movie.get("title", "Unknown Title")
+        card_id = movie.get("movieId", movie_title)
 
         avg_rating = movie.get(
             "avg_rating",
@@ -95,7 +96,7 @@ def render_pack_reveal(recommendations):
 
         with cols[i]:
 
-            if i in st.session_state["revealed_cards"]:
+            if card_id in st.session_state["revealed_cards"]:
 
                 poster_url = movie.get("poster_url", None)
 
@@ -147,10 +148,10 @@ def render_pack_reveal(recommendations):
 
                 if st.button(
                     "Click to Reveal",
-                    key=f"reveal_card_{i}_{movie_title}",
+                    key=f"reveal_card_{card_id}",
                     width="stretch",
                 ):
 
-                    st.session_state["revealed_cards"].add(i)
+                    st.session_state["revealed_cards"].add(card_id)
 
                     st.rerun()

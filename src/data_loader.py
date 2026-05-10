@@ -7,7 +7,6 @@ from src.config import (
     MODEL_DF_PATH,
 )
 
-
 N_USERS = 1000
 RANDOM_STATE = 42
 
@@ -20,8 +19,9 @@ def load_raw_data():
 
 
 @st.cache_data
-def build_or_load_model_df(force_rebuild=False):
-    if MODEL_DF_PATH.exists() and not force_rebuild:
+def build_or_load_model_df():
+    # Load prebuilt deploy-ready dataframe if it exists
+    if MODEL_DF_PATH.exists():
         return pd.read_csv(MODEL_DF_PATH)
 
     movies, ratings = load_raw_data()
@@ -34,7 +34,9 @@ def build_or_load_model_df(force_rebuild=False):
         .sample(n=n_users, random_state=RANDOM_STATE)
     )
 
-    ratings_sample = ratings[ratings["userId"].isin(sample_users)].copy()
+    ratings_sample = ratings[
+        ratings["userId"].isin(sample_users)
+    ].copy()
 
     df = ratings_sample.merge(
         movies,
@@ -59,7 +61,14 @@ def build_or_load_model_df(force_rebuild=False):
 
     model_df["genre_list"] = df["genres"]
 
-    MODEL_DF_PATH.parent.mkdir(parents=True, exist_ok=True)
-    model_df.to_csv(MODEL_DF_PATH, index=False)
+    MODEL_DF_PATH.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    model_df.to_csv(
+        MODEL_DF_PATH,
+        index=False,
+    )
 
     return model_df

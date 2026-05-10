@@ -31,9 +31,7 @@ def create_movie_pool(movie_df, selected_genres, min_rating_count=10):
 
     filtered["genre_match_count"] = filtered[genre_col].apply(count_genre_matches)
 
-    filtered = filtered[
-        filtered["genre_match_count"] > 0
-    ].copy()
+    filtered = filtered[filtered["genre_match_count"] > 0].copy()
 
     if filtered.empty:
         return pd.DataFrame()
@@ -41,22 +39,24 @@ def create_movie_pool(movie_df, selected_genres, min_rating_count=10):
     if "movieId" in filtered.columns:
         filtered = filtered.drop_duplicates(
             subset=["movieId"],
-            keep="first"
+            keep="first",
         ).copy()
     elif "title" in filtered.columns:
         filtered = filtered.drop_duplicates(
             subset=["title"],
-            keep="first"
+            keep="first",
         ).copy()
 
-    if "rating_count" in filtered.columns:
-        filtered = filtered[
-            filtered["rating_count"] >= min_rating_count
-        ].copy()
+    rating_count_col = None
 
+    if "rating_count" in filtered.columns:
+        rating_count_col = "rating_count"
     elif "ratings_count" in filtered.columns:
+        rating_count_col = "ratings_count"
+
+    if rating_count_col:
         filtered = filtered[
-            filtered["ratings_count"] >= min_rating_count
+            filtered[rating_count_col] >= min_rating_count
         ].copy()
 
     if filtered.empty:
@@ -68,17 +68,12 @@ def create_movie_pool(movie_df, selected_genres, min_rating_count=10):
     if "avg_rating" in filtered.columns:
         sort_cols.append("avg_rating")
         ascending.append(False)
-
-    if "average_rating" in filtered.columns:
+    elif "average_rating" in filtered.columns:
         sort_cols.append("average_rating")
         ascending.append(False)
 
-    if "rating_count" in filtered.columns:
-        sort_cols.append("rating_count")
-        ascending.append(False)
-
-    if "ratings_count" in filtered.columns:
-        sort_cols.append("ratings_count")
+    if rating_count_col:
+        sort_cols.append(rating_count_col)
         ascending.append(False)
 
     filtered = filtered.sort_values(
@@ -98,12 +93,12 @@ def get_random_movies(movie_pool, n=20):
     if "movieId" in movie_pool.columns:
         movie_pool = movie_pool.drop_duplicates(
             subset=["movieId"],
-            keep="first"
+            keep="first",
         ).copy()
     elif "title" in movie_pool.columns:
         movie_pool = movie_pool.drop_duplicates(
             subset=["title"],
-            keep="first"
+            keep="first",
         ).copy()
 
     if "genre_match_count" in movie_pool.columns:

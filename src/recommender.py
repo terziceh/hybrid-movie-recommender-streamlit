@@ -9,9 +9,8 @@ import pandas as pd
 
 from models.xgb_model import load_xgb_model, predict_xgb_score
 from models.svd_model import train_svd_with_new_user
+from src.config import MODEL_DF_PATH
 
-
-MODEL_DF_PATH = ROOT_DIR / "data" / "processed" / "model_df.csv"
 NEW_USER_ID = 999999
 
 
@@ -56,6 +55,18 @@ def normalize_user_ratings(user_ratings):
     return ratings_df[["userId", "movieId", "rating"]]
 
 
+def filter_candidate_movies(movie_stats):
+    popular_movies = movie_stats[movie_stats["rating_count"] >= 25]
+
+    if popular_movies.empty:
+        popular_movies = movie_stats[movie_stats["rating_count"] >= 5]
+
+    if popular_movies.empty:
+        popular_movies = movie_stats.copy()
+
+    return popular_movies
+
+
 def generate_recommendations(
     movie_df,
     selected_genres,
@@ -88,14 +99,12 @@ def generate_recommendations(
         .reset_index()
     )
 
-    # Faster + better for 1,000-user sample
-    movie_stats = movie_stats[movie_stats["rating_count"] >= 100]
+    movie_stats = filter_candidate_movies(movie_stats)
 
     if movie_stats.empty:
         return pd.DataFrame()
 
     max_rating_count = movie_stats["rating_count"].max()
-
     predictions = []
 
     for row in movie_stats.itertuples(index=False):
@@ -107,6 +116,7 @@ def generate_recommendations(
         movie_row = movie_rows.iloc[0]
 
         genre_match_count = 0
+
         for genre in selected_genres:
             if genre in model_df.columns:
                 genre_match_count += int(movie_row[genre])
@@ -185,4 +195,8 @@ def generate_recommendations(
         if len(final_recs) == top_n:
             break
 
-    return pd.DataFrame(final_recs).drop(columns=["title_family"]).reset_index(drop=True)
+    return (
+        pd.DataFrame(final_recs)
+        .drop(columns=["title_family"])
+        .reset_index(drop=True)
+    )

@@ -1,27 +1,21 @@
 import pandas as pd
 from pathlib import Path
 
-RAW_DIR = Path("data/raw")
-PROCESSED_DIR = Path("data/processed")
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+DEPLOY_DIR = Path("data/deploy")
+DEPLOY_DIR.mkdir(parents=True, exist_ok=True)
 
-N_USERS = 5000
-RANDOM_STATE = 42
+RATINGS_PATH = DEPLOY_DIR / "ratings_sample.csv"
+MOVIES_PATH = DEPLOY_DIR / "movies_sample.csv"
+MODEL_DF_PATH = DEPLOY_DIR / "model_df.csv"
 
-ratings = pd.read_csv(RAW_DIR / "ratings.csv")
-movies = pd.read_csv(RAW_DIR / "movies.csv")
+ratings = pd.read_csv(RATINGS_PATH)
+movies = pd.read_csv(MOVIES_PATH)
 
-n_users = min(N_USERS, ratings["userId"].nunique())
-
-sample_users = (
-    ratings["userId"]
-    .drop_duplicates()
-    .sample(n=n_users, random_state=RANDOM_STATE)
+df = ratings.merge(
+    movies,
+    on="movieId",
+    how="left",
 )
-
-ratings_sample = ratings[ratings["userId"].isin(sample_users)].copy()
-
-df = ratings_sample.merge(movies, on="movieId", how="left")
 
 genre_dummies = df["genres"].str.get_dummies(sep="|")
 
@@ -55,10 +49,10 @@ model_df = pd.concat(
 
 model_df["genre_list"] = model_df["genres"]
 
-model_df.to_csv(PROCESSED_DIR / "model_df.csv", index=False)
+model_df.to_csv(MODEL_DF_PATH, index=False)
 
-print("Built sampled data/processed/model_df.csv")
-print(f"Users sampled: {n_users}")
+print("Built data/deploy/model_df.csv")
+print(f"Users: {ratings['userId'].nunique():,}")
 print(f"Rows: {len(model_df):,}")
 print(model_df.shape)
 print(model_df.columns.tolist())

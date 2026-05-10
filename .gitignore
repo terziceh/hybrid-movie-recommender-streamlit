@@ -10,7 +10,13 @@ data/processed/
 
 # Raw datasets
 data/raw/
+
+# Ignore all CSVs by default
 *.csv
+
+# Allow deployment sample CSVs
+!data/deploy/
+!data/deploy/*.csv
 
 # Streamlit cache + secrets
 .streamlit/
@@ -23,9 +29,12 @@ Thumbs.db
 # VS Code settings
 .vscode/
 
-# Model artifacts
+# Ignore all model artifacts by default
 *.pkl
 *.joblib
+
+# Allow deployable XGBoost model
+!models/xgb_model.pkl
 
 # Environment variables
 .env
